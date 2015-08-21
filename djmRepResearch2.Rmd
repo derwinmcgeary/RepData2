@@ -11,8 +11,8 @@ output: html_document
 
 Your data analysis must address the following questions:
 
-1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
-1. Across the United States, which types of events have the greatest economic consequences?
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most *harmful* with respect to *population health*?
+1. Across the United States, which types of events have the *greatest economic consequences*?
 
 Consider writing your report as if it were to be read by a government or municipal manager who might be responsible for preparing for severe weather events and will need to prioritize resources for different types of events. However, there is no need to make any specific recommendations in your report.
 
@@ -20,14 +20,51 @@ Consider writing your report as if it were to be read by a government or municip
 
 ## Data processing
 
+We will be interested in the columns EVTYPE, CROPDMG, PROPDMG, INJURIES, and FATALITIES. So we can read in the data and check how many NA values are in those columns.
+
 ```{r, cache=TRUE}
 stormData <- read.csv("repdata_data_StormData.csv.bz2")
+sum(is.na(stormData$CROPDMG))
+sum(is.na(stormData$PROPDMG))
+sum(is.na(stormData$INJURIES))
+sum(is.na(stormData$FATALITIES))
+
 ```
+
+These data are complete in those columns.
+
+### Event Types
+As listed in [the Storm Data Preparation guidance, on page 6](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf), there are 48 Event Names, corresponding to the column EVTYPE in our data. We'll put them in a variable, `eventnames`.
+```{r}
+eventnames <- c("Astronomical Low Tide", "Avalanche", "Blizzard", "Coastal Flood", "Cold/Wind Chill", "Debris Flow", "Dense Fog", "Dense Smoke", "Drought", "Dust Devil", "Dust Storm", "Excessive Heat", "Extreme Cold/Wind Chill", "Flash Flood", "Flood", "Frost/Freeze", "Funnel Cloud", "Freezing Fog", "Hail", "Heat", "Heavy Rain", "Heavy Snow", "High Surf", "High Wind", "Hurricane (Typhoon)", "Ice Storm", "Lake-Effect Snow", "Lakeshore Flood", "Lightning", "Marine Hail", "Marine High Wind", "Marine Strong Wind", "Marine Thunderstorm Wind", "Rip Current", "Seiche", "Sleet", "Storm Surge/Tide", "Strong Wind", "Thunderstorm Wind", "Tornado", "Tropical Depression", "Tropical Storm", "Tsunami", "Volcanic Ash", "Waterspout", "Wildfire", "Winter Storm", "Winter Weather")
+print(evtypes<-length(unique(stormData$EVTYPE)))
+```
+Unfortunately there are `r evtypes` different names in EVTYPE. We shall try to make this more manageable.
+
+```{r}
+stormData$EVTYPE <- toupper(stormData$EVTYPE)
+stormData$EVTYPE <- gsub("\\ ","",stormData$EVTYPE)
+
+
+stormData$EVTYPE <- gsub("T[H]*U[N]*[D]*[E]*[R]*","THUNDER",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("STROM","STORM",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^THUNDERSTORM.*","THUNDERSTORMWIND",stormData$EVTYPE)
+
+unique(stormData$EVTYPE)
+```
+
+
+### Economic Damage Values
+Also as listed in the Storm Data Preparation guidance, there are multipliers in columns PROPDMGEXP and CROPDMGEXP, where K, M, and B correspond to thousands, millions, and billions respectively.
+
 
 ## Analysis
 
-```{r}
+So we can aggregate the data by our two public health columns, INJURIES and FATALITIES, and our two economic columns, PROPDMG and CROPDMG.
 
+```{r}
+stormEconAgg <- aggregate(cbind(PROPDMG,CROPDMG)~EVTYPE, data=stormData, FUN=sum)
+stormHealthAgg <- aggregate(cbind(INJURIES,FATALITIES)~EVTYPE, data=stormData, FUN=sum)
 ```
 
 ## Results
