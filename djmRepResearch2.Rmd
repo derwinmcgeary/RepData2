@@ -42,6 +42,13 @@ We may also look at a histogram of events by date.
 ```{r}
 hist(as.Date(stormData$BGN_DATE,"%m/%d/%Y"), breaks=62)
 ```
+
+There is a large disparity between data collected before and after around 1995. As the earlier data is much smaller in volume and in quality, we may discard it.
+
+```{r}
+stormData <- subset(stormData, as.Date(stormData$BGN_DATE, "%m/%d/%Y")>as.Date("01/01/1995","%m/%d/%Y"))
+```
+
 ### Calculating total damage amounts
 
 As listed in the Storm Data Preparation guidance, there are multipliers in columns PROPDMGEXP and CROPDMGEXP, where K, M, and B correspond to thousands, millions, and billions respectively.
@@ -111,9 +118,10 @@ stormData$EVTYPE <- gsub("STORMFORCEWINDS","HIGHWINDS", stormData$EVTYPE)
 stormData$EVTYPE <- gsub(".*WATERSPOUT.*","WATERSPOUT", stormData$EVTYPE)
 stormData$EVTYPE <- gsub(".*FIRE.*","WILDFIRE", stormData$EVTYPE)
 stormData$EVTYPE <- gsub(".*DROUGHT.*","DROUGHT", stormData$EVTYPE)
+print(evtypes<-length(unique(stormData$EVTYPE)))
 ```
 
-We have corrected for the multifarious and creative misspellings of "thunderstorm" and attempted to select the most specific category where more than one is mentioned. This is still nowhere near complete, but it covers the categories with the largest figures. The difference is under six percent for each of the measurements we care about.
+We have corrected for the multifarious and creative misspellings of "thunderstorm" and attempted to select the most specific category where more than one is mentioned. This is still nowhere near complete, but it covers the categories with the largest figures. The difference is under eight percent for each of the measurements we care about.
 
 ```{r}
 cleanData <- subset(stormData, EVTYPE %in% EVENTNAMES)
@@ -126,10 +134,13 @@ stormData <- cleanData
 
 ## Analysis
 
-So we can aggregate the data by our two public health columns, INJURIES and FATALITIES, and our two economic columns, PROPDMG and CROPDMG.
+So we can aggregate the data by our two public health columns, INJURIES and FATALITIES, and our two economic columns, PROPDMG and CROPDMG. As the latter two are both dollar amounts, we will sum them. INJURIES and FATALITIES are fundamentally different categories, so we will not combine them.
 
 ```{r}
 stormEconAgg <- aggregate(cbind(PROPDMGTOTAL,CROPDMGTOTAL)~EVTYPE, data=stormData, FUN=sum)
+stormEconAgg$TotalDamage <- stormEconAgg$PROPDMGTOTAL + stormEconAgg$CROPDMGTOTAL
+stormEconAgg$PercentDamage <- 100 * stormEconAgg$TotalDamage/sum(stormEconAgg$TotalDamage)
+stormEconAgg <- stormEconAgg[order(-stormEconAgg$TotalDamage),]
 stormHealthAgg <- aggregate(cbind(INJURIES,FATALITIES)~EVTYPE, data=stormData, FUN=sum)
 ```
 
@@ -139,7 +150,7 @@ stormHealthAgg <- aggregate(cbind(INJURIES,FATALITIES)~EVTYPE, data=stormData, F
 You can also embed plots, for example:
 
 ```{r}
-plot(cleanData$INJURIES,cleanData$FATALITIES)
+barplot(height = stormEconAgg$TotalDamage[1:5], names.arg = stormEconAgg$EVTYPE[1:5])
+stormHealthAgg <- stormHealthAgg[order(-stormHealthAgg$FATALITIES),]
+barplot(height = stormHealthAgg$FATALITIES[1:5], names.arg = stormHealthAgg$EVTYPE[1:5])
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
