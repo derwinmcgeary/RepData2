@@ -20,18 +20,46 @@ Consider writing your report as if it were to be read by a government or municip
 
 ## Data processing
 
-We will be interested in the columns EVTYPE, CROPDMG, PROPDMG, INJURIES, and FATALITIES. So we can read in the data and check how many NA values are in those columns.
+We will be interested in the columns EVTYPE, CROPDMG, CROPDMGEXP, PROPDMG, PROPDMGEXP, INJURIES, and FATALITIES. So we can read in the data and check how many NA values are in those columns.
 
 ```{r, cache=TRUE}
 stormData <- read.csv("repdata_data_StormData.csv.bz2")
 sum(is.na(stormData$CROPDMG))
+sum(is.na(stormData$CROPDMGEXP))
 sum(is.na(stormData$PROPDMG))
+sum(is.na(stormData$PROPDMGEXP))
 sum(is.na(stormData$INJURIES))
 sum(is.na(stormData$FATALITIES))
 
 ```
 
-These data are complete in those columns.
+We are interested in events which caused damage, injury, and loss of life, so we can discard any rows where these are all zero.
+
+```{r}
+stormData <- subset(stormData, INJURIES + FATALITIES + PROPDMG + CROPDMG > 0)
+```
+We may also look at a histogram of events by date.
+```{r}
+hist(as.Date(stormData$BGN_DATE,"%m/%d/%Y"), breaks=62)
+```
+### Calculating total damage amounts
+
+As listed in the Storm Data Preparation guidance, there are multipliers in columns PROPDMGEXP and CROPDMGEXP, where K, M, and B correspond to thousands, millions, and billions respectively.
+
+```{r}
+summary(stormData$PROPDMGEXP[stormData$PROPDMG > 0])
+summary(stormData$CROPDMGEXP[stormData$CROPDMG > 0])
+```
+
+As there are relatively few exceptions, with K and M dominating in each case, we will ignore the others rather than guessing (i.e. assume a multiplicative factor of 1 for the CROPDMG/PROPDMG numbers).
+
+```{r}
+exp2mult <- function(x) switch(x, B=1000000000, M=1000000, K=1000, 1)
+stormData$PROPDMGMULT <- sapply(toupper(as.character(stormData$PROPDMGEXP)), exp2mult)
+stormData$CROPDMGMULT <- sapply(toupper(as.character(stormData$CROPDMGEXP)), exp2mult)
+stormData$CROPDMGTOTAL <- stormData$CROPDMG * stormData$CROPDMGMULT
+stormData$PROPDMGTOTAL <- stormData$PROPDMG * stormData$PROPDMGMULT
+```
 
 ### Event Types
 As listed in [the Storm Data Preparation guidance, on page 6](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf), there are 48 Event Names, corresponding to the column EVTYPE in our data. We'll put them in a variable, `eventnames`.
@@ -45,26 +73,63 @@ Unfortunately there are `r evtypes` different names in EVTYPE. We shall try to m
 ```{r}
 stormData$EVTYPE <- toupper(stormData$EVTYPE)
 stormData$EVTYPE <- gsub("\\ ","",stormData$EVTYPE)
-
-
+subb <- function(x,y) stormData$EVTYPE <- gsub(x,y,stormData$EVTYPE)
+stormData$EVTYPE <- gsub("SEVERE","",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("HVY","HEAVY",stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*RAINFALL.*","HEAVYRAIN",stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*LIG[HN]T[N]*ING.*","LIGHTNING",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("TSTM", "THUNDERSTORMWIND", stormData$EVTYPE)
 stormData$EVTYPE <- gsub("T[H]*U[N]*[D]*[E]*[R]*","THUNDER",stormData$EVTYPE)
 stormData$EVTYPE <- gsub("STROM","STORM",stormData$EVTYPE)
 stormData$EVTYPE <- gsub("^THUNDERSTORM.*","THUNDERSTORMWIND",stormData$EVTYPE)
-
-unique(stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*FLASHFLOOD.*","flashflood",stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*FLOOD.*","FLOOD",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("flashflood","FLASHFLOOD",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^HAIL.*","HAIL",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^TROPICALSTORM.*","STORM",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^HURRICANE.*","HURRICANE(TYPHOON)",stormData$EVTYPE)
+stormData$EVTYPE <-gsub("^TYPHOON$","HURRICANE(TYPHOON)", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^TORNADO.*","TORNADO",stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*SURGE.*","STORMSURGE/TIDE",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("HEAVYSHOWER","HEAVYRAIN",stormData$EVTYPE)
+stormData$EVTYPE <- gsub("HEAVYSNOWSHOWER","HEAVYSNOW",stormData$EVTYPE)
+stormData$EVTYPE <-gsub(".*AVALAN.*", "AVALANCHE", stormData$EVTYPE)
+stormData$EVTYPE <-gsub(".*BLIZZARD.*","BLIZZARD", stormData$EVTYPE)
+stormData$EVTYPE <-gsub(".*WINT.*WEA.*","WINTERWEATHER", stormData$EVTYPE)
+stormData$EVTYPE <-gsub("WINTRY.*","WINTERWEATHER", stormData$EVTYPE)
+stormData$EVTYPE <-gsub(".*WINTERSTORM.*","WINTERSTORM", stormData$EVTYPE)
+stormData$EVTYPE <-gsub(".*CURRENT.*","RIPCURRENT", stormData$EVTYPE)
+stormData$EVTYPE <-gsub(".*SURF.*","HIGHSURF", stormData$EVTYPE)
+stormData$EVTYPE <-gsub(".*EXTRE
+                        MECOLD.*","EXTREMECOLD/WINDCHILL", stormData$EVTYPE)
+stormData$EVTYPE <-gsub("EXTREMEWINDCHILL","EXTREMECOLD/WINDCHILL", stormData$EVTYPE)
+stormData$EVTYPE <-gsub("EXTREMEHEAT","HEAT", stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*FREEZE.*","FROST/FREEZE", stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*FREEZINGRAIN.*","SLEET", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("FREEZINGDRIZZLE","SLEET", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("STORMFORCEWINDS","HIGHWINDS", stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*WATERSPOUT.*","WATERSPOUT", stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*FIRE.*","WILDFIRE", stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*DROUGHT.*","DROUGHT", stormData$EVTYPE)
 ```
 
+We have corrected for the multifarious and creative misspellings of "thunderstorm" and attempted to select the most specific category where more than one is mentioned. This is still nowhere near complete, but it covers the categories with the largest figures. The difference is under six percent for each of the measurements we care about.
 
-### Economic Damage Values
-Also as listed in the Storm Data Preparation guidance, there are multipliers in columns PROPDMGEXP and CROPDMGEXP, where K, M, and B correspond to thousands, millions, and billions respectively.
-
+```{r}
+cleanData <- subset(stormData, EVTYPE %in% EVENTNAMES)
+(sum(stormData$FATALITIES)-sum(cleanData$FATALITIES))/sum(stormData$FATALITIES)
+(sum(stormData$INJURIES)-sum(cleanData$INJURIES))/sum(stormData$INJURIES)
+(sum(stormData$PROPDMGTOTAL)-sum(cleanData$PROPDMGTOTAL))/sum(stormData$PROPDMGTOTAL)
+(sum(stormData$CROPDMGTOTAL)-sum(cleanData$CROPDMGTOTAL))/sum(stormData$CROPDMGTOTAL)
+stormData <- cleanData
+```
 
 ## Analysis
 
 So we can aggregate the data by our two public health columns, INJURIES and FATALITIES, and our two economic columns, PROPDMG and CROPDMG.
 
 ```{r}
-stormEconAgg <- aggregate(cbind(PROPDMG,CROPDMG)~EVTYPE, data=stormData, FUN=sum)
+stormEconAgg <- aggregate(cbind(PROPDMGTOTAL,CROPDMGTOTAL)~EVTYPE, data=stormData, FUN=sum)
 stormHealthAgg <- aggregate(cbind(INJURIES,FATALITIES)~EVTYPE, data=stormData, FUN=sum)
 ```
 
@@ -74,7 +139,7 @@ stormHealthAgg <- aggregate(cbind(INJURIES,FATALITIES)~EVTYPE, data=stormData, F
 You can also embed plots, for example:
 
 ```{r}
-
+plot(cleanData$INJURIES,cleanData$FATALITIES)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
