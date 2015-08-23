@@ -1,11 +1,9 @@
 ---
-title: "NOAA Storm Database Analysis"
+title: "Floods and Hurricanes cause more property damage, while Tornados, Heat, and Floods have the greatest impact on human health"
 author: "Derwin McGeary"
 date: "August 21, 2015"
 output: html_document
 ---
-
-# Floods and Hurricanes cause more property damage, while Tornados, Heat, and Floods have the greatest impact on human health
 
 ## Questions
 
@@ -18,11 +16,11 @@ Consider writing your report as if it were to be read by a government or municip
 
 We have analysed the data from the NOAA Storm Database in order to rank the health and economic effects of weather events. Economic damage was assessed by adding the damage to crops and the damage to property. Economically, floods and hurricanes are the most destructive events by a large margin.
 
-Public health impact was assessed by considering the number of injuries and deaths reported with each event. No effort has been made to combine these factors. Tornados, excessive heat, and simply heat are the most lethal events. The greatest number of injuries is caused by tornados too, followed by floods, excessive heat, and thunderstorms.
+Public health impact was assessed by considering the number of injuries and deaths reported with each event. No effort has been made to combine these factors. Tornados, excessive heat, and heat are the most lethal events. The greatest number of injuries is caused by tornados too, followed by floods, excessive heat, and thunderstorms.
 
 ## Data processing
 
-We will be interested in the columns `EVTYPE`, `CROPDMG`, `CROPDMGEXP`, `PROPDMG`, `PROPDMGEXP`, `INJURIES`, and `FATALITIES`. So we can read in the data and check how complete those columns are.
+Our data was retrieved from https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2 on August 20th 2015. We will be interested in the columns `EVTYPE`, `CROPDMG`, `CROPDMGEXP`, `PROPDMG`, `PROPDMGEXP`, `INJURIES`, and `FATALITIES`. So we can read in the data and check how complete those columns are.
 
 ```{r, cache=TRUE}
 stormData <- read.csv("repdata_data_StormData.csv.bz2")
@@ -38,7 +36,7 @@ stormData <- subset(stormData, INJURIES + FATALITIES + PROPDMG + CROPDMG > 0)
 We may also look at a histogram of events by date.
 
 ```{r}
-hist(as.Date(stormData$BGN_DATE,"%m/%d/%Y"), breaks="years")
+hist(as.Date(stormData$BGN_DATE,"%m/%d/%Y"), breaks="years", main="Storm Database Events by Year", xlab="Year")
 ```
 
 There is a large disparity between data collected before and after around 1995. As the earlier data is much smaller in volume and lower in quality, we may discard it.
@@ -171,21 +169,22 @@ strmHealth <- reshape(stormHealthAgg, varying = c("FATALITIES","INJURIES"), v.na
 
 ## Results
 
-
+### Economic Impact
 Now we can view the economic data, ordered by severity.
 
 ```{r}
 library(ggplot2)
-ggplot(stormEconAgg, aes(x=reorder(EVTYPE,TotalDamage), y=TotalDamage/1000000)) + labs(list(title = "Economic Damage due to Storm Events"), x="Event Type", y="Million USD") + theme_grey(base_size = 8) + geom_bar(stat='identity') + coord_flip()
+ggplot(stormEconAgg, aes(x=reorder(EVTYPE,TotalDamage), y=TotalDamage/1000000)) + labs(list(title = "Economic Damage due to Storm Events", x="Event Type", y="Million USD")) + theme_grey(base_size = 8) + geom_bar(stat='identity') + coord_flip()
 ```
 
-Clearly floods and hurricanes are the most destructive events by a large margin. Indeed, combined they cause `r sum(stormEconAgg$PercentDamage[1:2]) percent of total economic damage in this dataset.
+Clearly floods and hurricanes are the most destructive events by a large margin. Indeed, combined they cause `r sum(stormEconAgg$PercentDamage[1:2])` percent of total economic damage in this dataset.
 
+### Health Impact
 ```{r}
-ggplot(strmHealth, aes(x=reorder(EVTYPE,Number), y=Number)) + labs(list(title = "Public Health Effects of Storm Events"), x="Event Type", y= "Number") + theme_grey(base_size = 8) +  geom_bar(stat='identity') + facet_grid(. ~ Type) + coord_flip()
+ggplot(strmHealth, aes(x=reorder(EVTYPE,Number), y=Number)) + labs(list(title = "Public Health Effects of Storm Events", x="Event Type", y= "Number")) + theme_grey(base_size = 8) +  geom_bar(stat='identity') + facet_grid(. ~ Type) + coord_flip()
 ```
 
 Tornados, excessive heat, and simply heat are the most lethal events. The greatest number of injuries is caused by tornados too, followed by floods, excessive heat, and thunderstorms.
 
 ## Further research
-It would be useful to have a more granular analysis. At the very least, separating agricultural economic damage out. Also, there is a list stating locations of injury or death, which would also enable a more focused response, and possible intervention.
+It would be useful to have a more granular analysis, at the very least, separating agricultural economic damage out. Also, there is a list stating locations of injury or death, which would also enable a more focused response, and possible intervention.
