@@ -73,6 +73,9 @@ As listed in [the Storm Data Preparation guidance, on page 6](https://d396qusza4
 ```{r}
 eventnames <- c("Astronomical Low Tide", "Avalanche", "Blizzard", "Coastal Flood", "Cold/Wind Chill", "Debris Flow", "Dense Fog", "Dense Smoke", "Drought", "Dust Devil", "Dust Storm", "Excessive Heat", "Extreme Cold/Wind Chill", "Flash Flood", "Flood", "Frost/Freeze", "Funnel Cloud", "Freezing Fog", "Hail", "Heat", "Heavy Rain", "Heavy Snow", "High Surf", "High Wind", "Hurricane (Typhoon)", "Ice Storm", "Lake-Effect Snow", "Lakeshore Flood", "Lightning", "Marine Hail", "Marine High Wind", "Marine Strong Wind", "Marine Thunderstorm Wind", "Rip Current", "Seiche", "Sleet", "Storm Surge/Tide", "Strong Wind", "Thunderstorm Wind", "Tornado", "Tropical Depression", "Tropical Storm", "Tsunami", "Volcanic Ash", "Waterspout", "Wildfire", "Winter Storm", "Winter Weather")
 EVENTNAMES <- gsub("\\ ","",toupper(eventnames))
+```
+Now, let's look at the real data.
+```{r}
 print(evtypes<-length(unique(stormData$EVTYPE)))
 ```
 Unfortunately there are `r evtypes` different names in EVTYPE. We shall try to make this more manageable.
@@ -107,23 +110,41 @@ stormData$EVTYPE <-gsub("WINTRY.*","WINTERWEATHER", stormData$EVTYPE)
 stormData$EVTYPE <-gsub(".*WINTERSTORM.*","WINTERSTORM", stormData$EVTYPE)
 stormData$EVTYPE <-gsub(".*CURRENT.*","RIPCURRENT", stormData$EVTYPE)
 stormData$EVTYPE <-gsub(".*SURF.*","HIGHSURF", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^COLD$","COLD/WINDCHILL", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^COLDWAVE$","COLD/WINDCHILL", stormData$EVTYPE)
+
 stormData$EVTYPE <-gsub(".*EXTRE
                         MECOLD.*","EXTREMECOLD/WINDCHILL", stormData$EVTYPE)
 stormData$EVTYPE <-gsub("EXTREMEWINDCHILL","EXTREMECOLD/WINDCHILL", stormData$EVTYPE)
 stormData$EVTYPE <-gsub("EXTREMEHEAT","HEAT", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^HEATWAVE$","HEAT", stormData$EVTYPE)
+
 stormData$EVTYPE <- gsub(".*FREEZE.*","FROST/FREEZE", stormData$EVTYPE)
 stormData$EVTYPE <- gsub(".*FREEZINGRAIN.*","SLEET", stormData$EVTYPE)
 stormData$EVTYPE <- gsub("FREEZINGDRIZZLE","SLEET", stormData$EVTYPE)
-stormData$EVTYPE <- gsub("STORMFORCEWINDS","HIGHWINDS", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("STORMFORCEWINDS","HIGHWIND", stormData$EVTYPE)
 stormData$EVTYPE <- gsub(".*WATERSPOUT.*","WATERSPOUT", stormData$EVTYPE)
 stormData$EVTYPE <- gsub(".*FIRE.*","WILDFIRE", stormData$EVTYPE)
 stormData$EVTYPE <- gsub(".*DROUGHT.*","DROUGHT", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("WINDS","WIND", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^WIND$", "STRONGWIND", stormData$EVTYPE) # STRONGWIND is the lower category of STRONG and HIGH
+stormData$EVTYPE <- gsub("^HIGHWIND.*","HIGHWIND", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("WHIRLWIND","TORNADO", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("WINDWIND","WIND", stormData$EVTYPE)
+stormData$EVTYPE <- gsub(".*FROST.*","FROST/FREEZE", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("SMALLHAIL","HAIL", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^STORM$","THUNDERSTORMWIND", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^RAIN$","HEAVYRAIN", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^RECORDHEAT$","EXCESSIVEHEAT", stormData$EVTYPE)
+stormData$EVTYPE <- gsub("^RECORDCOLD$","EXTREMECOLD/WINDCHILL", stormData$EVTYPE)
+
 print(evtypes<-length(unique(stormData$EVTYPE)))
 ```
 
 We have corrected for the multifarious and creative misspellings of "thunderstorm" and attempted to select the most specific category where more than one is mentioned. This is still nowhere near complete, but it covers the categories with the largest figures. The difference is under eight percent for each of the measurements we care about.
 
 ```{r}
+unique(stormData$EVTYPE)
 cleanData <- subset(stormData, EVTYPE %in% EVENTNAMES)
 (sum(stormData$FATALITIES)-sum(cleanData$FATALITIES))/sum(stormData$FATALITIES)
 (sum(stormData$INJURIES)-sum(cleanData$INJURIES))/sum(stormData$INJURIES)
