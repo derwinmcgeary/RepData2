@@ -5,7 +5,7 @@ date: "August 21, 2015"
 output: html_document
 ---
 
-# Floods and Hurricanes cause more property damage, while Tornados, Heat, and Flooding have the greatest impact on human health
+# Floods and Hurricanes cause more property damage, while Tornados, Heat, and Floods have the greatest impact on human health
 
 ## Questions
 
