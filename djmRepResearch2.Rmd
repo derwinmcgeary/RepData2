@@ -151,11 +151,12 @@ cleanData <- subset(stormData, EVTYPE %in% EVENTNAMES)
 (sum(stormData$PROPDMGTOTAL)-sum(cleanData$PROPDMGTOTAL))/sum(stormData$PROPDMGTOTAL)
 (sum(stormData$CROPDMGTOTAL)-sum(cleanData$CROPDMGTOTAL))/sum(stormData$CROPDMGTOTAL)
 stormData <- cleanData
+stormData$EVTYPE <- eventnames[match(stormData$EVTYPE, EVENTNAMES)]
 ```
 
 ## Analysis
 
-So we can aggregate the data by our two public health columns, INJURIES and FATALITIES, and our two economic columns, PROPDMG and CROPDMG. As the latter two are both dollar amounts, we will sum them. INJURIES and FATALITIES are fundamentally different categories, so we will not combine them.
+So we can aggregate the data by our two public health columns, INJURIES and FATALITIES, and our two economic columns, PROPDMG and CROPDMG. As the latter two are both dollar amounts, we will sum them. INJURIES and FATALITIES are fundamentally different categories, so we will not combine them (an injury is not half a death).
 
 ```{r}
 stormEconAgg <- aggregate(cbind(PROPDMGTOTAL,CROPDMGTOTAL)~EVTYPE, data=stormData, FUN=sum)
@@ -163,15 +164,22 @@ stormEconAgg$TotalDamage <- stormEconAgg$PROPDMGTOTAL + stormEconAgg$CROPDMGTOTA
 stormEconAgg$PercentDamage <- 100 * stormEconAgg$TotalDamage/sum(stormEconAgg$TotalDamage)
 stormEconAgg <- stormEconAgg[order(-stormEconAgg$TotalDamage),]
 stormHealthAgg <- aggregate(cbind(INJURIES,FATALITIES)~EVTYPE, data=stormData, FUN=sum)
+# Making this long form for ease of plotting in one panel
+strmHealth <- reshape(stormHealthAgg, varying = c("FATALITIES","INJURIES"), v.names="Number",timevar = "Type", times = c("FATALITIES","INJURIES"), direction = "long")
 ```
 
 ## Results
 
 
-You can also embed plots, for example:
+So, if we view the economic damage by event, ordered.
 
 ```{r}
-barplot(height = stormEconAgg$TotalDamage[1:5], names.arg = stormEconAgg$EVTYPE[1:5])
-stormHealthAgg <- stormHealthAgg[order(-stormHealthAgg$FATALITIES),]
-barplot(height = stormHealthAgg$FATALITIES[1:5], names.arg = stormHealthAgg$EVTYPE[1:5])
+library(ggplot2)
+ggplot(stormEconAgg, aes(x=reorder(EVTYPE,TotalDamage), y=TotalDamage)) + labs(title = "Economic Damage due to Storm Events") geom_bar(stat='identity') + coord_flip()
 ```
+We can see that SOMETHIAGNSADGOKAERGH
+```{r}
+ggplot(strmHealth, aes(x=reorder(EVTYPE,Number), y=Number)) + labs(title = "Public Health Effects of Storm Events") 
++ geom_bar(stat='identity') + facet_grid(Type ~ .) + coord_flip()
+```
+We can see that ASEGFIJAERLHGKNARGAL.
